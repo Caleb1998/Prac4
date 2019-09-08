@@ -49,6 +49,7 @@ void play_pause_isr(void){
 void stop_isr(void){
     // Write your logic here
 	printf("Btn stop pressed");
+	stopped=true;
 }
 
 /*
@@ -86,17 +87,21 @@ void *playThread(void *threadargs){
     //You need to only be playing if the stopped flag is false
     while(!stopped){
         //Code to suspend playing if paused
-		//TODO
-        
+		//TODOne
+        while(paused){continue;}//does nada
+	while(!paused){
+
         //Write the buffer out to SPI
         //TODO
 	
         //Do some maths to check if you need to toggle buffers
         buffer_location++;
-        if(buffer_location >= BUFFER_SIZE) {
-            buffer_location = 0;
-            bufferReading = !bufferReading; // switches column one if it finishes one column
-        }
+        	if(buffer_location >= BUFFER_SIZE) {
+           	buffer_location = 0;
+           	bufferReading = !bufferReading; // switches column one if it finishes one column
+        	}
+	
+	}
     }
     
     pthread_exit(NULL);
@@ -160,11 +165,11 @@ int main(){
             continue;
         }
         //Set config bits for first 8 bit packet and OR with upper bits
-        buffer[bufferWriting][counter][0] = config bits+0b00; //D9=0 and D8=0 (not needed input only 8bits long) D7 and D6 vary
+        buffer[bufferWriting][counter][0] =0b01110000|((ch>>6)&0b0011); //D9=0 and D8=0 (input only 8bits) D7 and D6 vary, ch>>6 ensures we get D6&7, D6=LSB
         //Set next 8 bit packet (bits D0-5)
-        buffer[bufferWriting][counter][1] = ; //TODO
+        buffer[bufferWriting][counter][1] = 0b0011111100&(ch<<2); //ch<<2 shifts ch to the correct postion for D0-D5, bitwise & ensures <=8bits and last 2 LSBs are 00(sligthly redundant)
 
-        counter++;
+      counter++;
         if(counter >= BUFFER_SIZE+1){
             if(!threadReady){
                 threadReady = true;
