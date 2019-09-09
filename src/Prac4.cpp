@@ -1,4 +1,4 @@
-\/*
+/*
  * Prac4.cpp
  * 
  * Originall written by Stefan Schröder and Dillion Heald
@@ -29,7 +29,7 @@ bool threadReady = false; //using this to finish writing the first column at the
 
 
 // Configure your interrupts here.
-
+//-done in GPIO init
 
 
 // Don't forget to use debouncing.
@@ -65,9 +65,11 @@ int setup_gpio(void){
 	pullUpDnControl(PLAY_BUTTON, PUD_UP);
 	pullUpDnControl(STOP_BUTTON, PUD_UP);  //enables pull up resistors on pins -> btn pressed = input goes low
 
+	wiringPiISR(PLAY_BUTTON, INT_EDGE_FALLING,  play_pause_isr);
+	wiringPiISR(STOP_BUTTON, INT_EDGE_FALLING,  stop_isr);//interrupt handlers
     //setting up the SPI interface
-	int wiringPiSPISetup (SPI_CHAN, SPI_SPEED) ;//channel 10 (CE01) and speed=25.6kHz -> eff. speed = 16khz (desired frequency)
-
+	int z =wiringPiSPISetup (0, SPI_SPEED) ;//channel 10 (CE01) and speed=25.6kHz -> eff. speed = 16khz (desired frequency)
+	if(z==-1){printf("Not right!");}
    return 0;
 }
 
@@ -88,12 +90,14 @@ void *playThread(void *threadargs){
     while(!stopped){
         //Code to suspend playing if paused
 		//TODOne
-        while(paused){continue;}//does nada
-	while(!paused){
+        while(!playing){continue;}//does nada
+	while(playing){
 
         //Write the buffer out to SPI
         //TODO
-	
+	int line = (buffer[bufferReading][buffer_location][1])<<8 +buffer[bufferReading][buffer_location][0];
+	wiringPiSPIDataRW (0, line, 16) ;//to be populated
+
         //Do some maths to check if you need to toggle buffers
         buffer_location++;
         	if(buffer_location >= BUFFER_SIZE) {
@@ -174,7 +178,7 @@ int main(){
             if(!threadReady){
                 threadReady = true;
             }
-x
+
             counter = 0;
             bufferWriting = (bufferWriting+1)%2;
         }
