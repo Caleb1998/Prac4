@@ -95,9 +95,8 @@ void *playThread(void *threadargs){
 
         //Write the buffer out to SPI
         //TODO
-	int line = (buffer[bufferReading][buffer_location][1])<<8 +buffer[bufferReading][buffer_location][0];
-	wiringPiSPIDataRW (0, line, 16) ;//to be populated
-
+	wiringPiSPIDataRW (0,buffer[bufferReading][buffer_location], 2) ;//to be populated
+	
         //Do some maths to check if you need to toggle buffers
         buffer_location++;
         	if(buffer_location >= BUFFER_SIZE) {
@@ -174,7 +173,7 @@ int main(){
         buffer[bufferWriting][counter][1] = 0b0011111100&(ch<<2); //ch<<2 shifts ch to the correct postion for D0-D5, bitwise & ensures <=8bits and last 2 LSBs are 00(sligthly redundant)
 
       counter++;
-        if(counter >= BUFFER_SIZE+1){
+        if(counter >= BUFFER_SIZE){
             if(!threadReady){
                 threadReady = true;
             }
