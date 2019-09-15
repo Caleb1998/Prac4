@@ -26,7 +26,8 @@ unsigned char buffer[2][BUFFER_SIZE][2];
 int buffer_location = 0;
 bool bufferReading = 0; //using this to switch between column 0 and 1 - the first column
 bool threadReady = false; //using this to finish writing the first column at the start of the song, before the column is played
-
+long lastInterruptTime = 0;
+long debounce = 200;
 
 // Configure your interrupts here.
 //-done in GPIO init
@@ -34,22 +35,29 @@ bool threadReady = false; //using this to finish writing the first column at the
 
 // Don't forget to use debouncing.
 void play_pause_isr(void){
-	printf("Btn pause/play toggle pressed");
-	if(playing==true){
-	//pause
-	playing=false;
-	}
-	else{
-	//play
-	playing=true;
-	}
+        long interruptTime = millis();
+        if (interruptTime - lastInterruptTime> debounce){
+	    if(playing==true){
+	        //pause
+	        playing=false;
+	    }
+	    else{
+	        //play
+	        playing=true;
+            }
+            lastInterruptTime = interruptTime;
+        }
     //Write your logic here
 }
 
 void stop_isr(void){
     // Write your logic here
-	printf("Btn stop pressed");
+    long interruptTime = millis();
+    if (interruptTime - lastInterruptTime> debounce){
+        printf("Btn stop pressed \n");
 	stopped=true;
+        lastInterruptTime = interruptTime;
+    }
 }
 
 /*
@@ -83,30 +91,26 @@ int setup_gpio(void){
  */
 void *playThread(void *threadargs){
     // If the thread isn't ready, don't do anything
-    while(!threadReady)
-        continue;
-    
+    while(!threadReady){continue;}
     //You need to only be playing if the stopped flag is false
     while(!stopped){
         //Code to suspend playing if paused
-		//TODOne
-        while(!playing){continue;}//does nada
+        while(!playing){
+            if(stopped){exit(EXIT_SUCCESS);}
+            continue;
+        }//does nada
 	while(playing){
-
-        //Write the buffer out to SPI
-        //TODO
-	wiringPiSPIDataRW (0,buffer[bufferReading][buffer_location], 2) ;//to be populated
-	
-        //Do some maths to check if you need to toggle buffers
-        buffer_location++;
-        	if(buffer_location >= BUFFER_SIZE) {
-           	buffer_location = 0;
+            //Write the buffer out to SPI
+            if(stopped){exit(EXIT_SUCCESS);}
+	    wiringPiSPIDataRW (0,buffer[bufferReading][buffer_location], 2) ;//to be populated
+            //Do some maths to check if you need to toggle buffers
+            buffer_location++;
+            if(buffer_location >= BUFFER_SIZE) {
+                buffer_location = 0;
            	bufferReading = !bufferReading; // switches column one if it finishes one column
-        	}
-	
+            }
 	}
     }
-    
     pthread_exit(NULL);
 }
 
