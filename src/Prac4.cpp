@@ -76,7 +76,7 @@ int setup_gpio(void){
 	wiringPiISR(PLAY_BUTTON, INT_EDGE_FALLING,  play_pause_isr);
 	wiringPiISR(STOP_BUTTON, INT_EDGE_FALLING,  stop_isr);//interrupt handlers
     //setting up the SPI interface
-	int z =wiringPiSPISetup (0, SPI_SPEED) ;//channel 10 (CE01) and speed=25.6kHz -> eff. speed = 16khz (desired frequency)
+	int z =wiringPiSPISetup (0, SPI_SPEED) ;//channel 10 (CE01) and speed
 	if(z==-1){printf("Not right!");}
    return 0;
 }
@@ -102,7 +102,7 @@ void *playThread(void *threadargs){
 	while(playing){
             //Write the buffer out to SPI
             if(stopped){exit(EXIT_SUCCESS);}
-	    wiringPiSPIDataRW (0,buffer[bufferReading][buffer_location], 2) ;//to be populated
+	    wiringPiSPIDataRW (0,buffer[bufferReading][buffer_location], 2) ;//writes to DAC through spi,chan=0, two 8 bit packages
             //Do some maths to check if you need to toggle buffers
             buffer_location++;
             if(buffer_location >= BUFFER_SIZE) {
